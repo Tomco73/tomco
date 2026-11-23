@@ -1,5 +1,0 @@
-@tailwind base;@tailwind components;@tailwind utilities;
-:root{--primary:#2563EB;--soft:#EFF6FF;--line:#E5E7EB;--muted:#6B7280}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Cairo','Tajawal',system-ui,sans-serif;background:#F8FAFC}
-img{max-width:100%;height:auto}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:active{transform:scale(.98)}
-.skeleton{animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
