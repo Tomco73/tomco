@@ -617,6 +617,7 @@ window.addProduct=async function(){
   products.unshift(np); localStorage.setItem('tomco_products',JSON.stringify(products)); render(); renderAdmin();
 };
 window.uploadGalleryToStorage=async function(offerId, gallery){ if(!storage) return null; let urls=[]; for(let i=0;i<gallery.length;i++){ let d=gallery[i]; if(!d) continue; if(typeof d==='string' && d.indexOf('data:')===0){ try{ let r=storageRef(storage,'offers/'+offerId+'/'+i+'.jpg'); await uploadString(r,d,'data_url'); let url=await getDownloadURL(r); urls.push(url); }catch(e){ urls.push(d); } } else { urls.push(d); } } return urls; };
+  window.uploadGalleryToStorage=async function(){ return null; };
 window.sendMessageToFirebase=async function(m){ if(!db) throw new Error('no db'); await setDoc(doc(db,"messages",String(m.id)), m); window.allMessages=window.allMessages||[]; window.allMessages.unshift(m); };
 window.deleteMessageFromFirebase=async function(id){ if(!db) return; try{ await deleteDoc(doc(db,"messages",String(id))); }catch(e){} };
 if(db){ onSnapshot(collection(db,"messages"), function(snap){ let list=[]; snap.forEach(function(d){ list.push(d.data()); }); list.sort(function(a,b){ return (b.id||0)-(a.id||0); }); window.allMessages=list; try{ renderAdminMessages(); }catch(e){} }, function(e){ console.log("Messages listen failed",e); }); }
