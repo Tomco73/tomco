@@ -1180,5 +1180,50 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   setInterval(function(){ try { fetchServer(); } catch(e){} }, 60 * 1000);
 })();
 </script>
+<script>
+/* TOMCO v45 — توحيد الدولار الموازي على أعلى سعر (سعر السيرفر) */
+(function(){
+  function serverBest(){
+    try {
+      var b = JSON.parse(localStorage.getItem('tomco_usdt_source') || 'null');
+      if (b && b.price && b.ts && (Date.now() - b.ts < 20 * 60 * 1000)) return b;
+    } catch(e){}
+    return null;
+  }
+  function applyServer(){
+    var b = serverBest();
+    if (!b) return;
+    try {
+      if (!window.tomcoRates) window.tomcoRates = {};
+      window.tomcoRates.usdParallel = b.price;
+      window.tomcoHighestUSDT = b.price;
+      window.tomcoUSDTBest = b;
+      /* أعد حساب كل العملات الموازية من السعر الجديد */
+      try { if (typeof applyGlobalConversions === 'function') applyGlobalConversions(); } catch(e){}
+      try { if (document.getElementById('rates-list')) renderRates(); } catch(e){}
+    } catch(e){}
+  }
+  /* بعد كل جلبة محلية — رجّع سعر السيرفر (الأعلى) */
+  try {
+    if (typeof window.fetchLiveRates === 'function' && !window.fetchLiveRates.__tomcoV45) {
+      var orig = window.fetchLiveRates;
+      var wrapped = function(){
+        var r = orig.apply(this, arguments);
+        try {
+          if (r && typeof r.then === 'function') {
+            r.then(function(){ setTimeout(applyServer, 50); }).catch(function(){});
+          } else { setTimeout(applyServer, 50); }
+        } catch(e){}
+        return r;
+      };
+      wrapped.__tomcoV45 = true;
+      window.fetchLiveRates = wrapped;
+    }
+  } catch(e){}
+  /* طبّق سعر السيرفر فوراً + كل 60 ثانية كضمان */
+  try { applyServer(); } catch(e){}
+  setInterval(function(){ try { applyServer(); } catch(e){} }, 60 * 1000);
+})();
+</script>
 
 </body></html>
