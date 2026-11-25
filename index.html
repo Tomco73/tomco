@@ -1051,5 +1051,90 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   };
 })();
   </script>
-  
+  <script>
+/* TOMCO v43 — المُسخِّن المتوازي: جلب المصادر الـ12 مع بعض في الخلفية */
+(function(){
+  var PAGES = [
+    'https://etcurrency.com/currency/usd-to-sdg-black-market',
+    'https://openrate.live/usdt-sdg',
+    'https://etcurrency.com/currency/usdt-to-sdg',
+    'https://openrate.live/p2p/markets/sdg',
+    'https://p2p.army/en/p2p/fiats/SDG',
+    'https://sudanakhbar.com/?s=سعر الدولار الرقمي USDT السوق الموازي',
+    'https://mujaz.sudanalaan.net/',
+    'https://hodhodnews.net/',
+    'https://sudanplatform.net/',
+    'https://bnpost.net/',
+    'https://sudanpostnews.com/',
+    'https://rtmediasd.net/'
+  ];
+  var NAMES = {
+    'etcurrency.com': 'ETCurrency',
+    'openrate.live': 'OpenRate',
+    'p2p.army': 'P2P Army (BingX)',
+    'sudanakhbar.com': 'أخبار السودان',
+    'mujaz.sudanalaan.net': 'موجز السودان',
+    'hodhodnews.net': 'هدهد نيوز',
+    'sudanplatform.net': 'منصة السودان',
+    'bnpost.net': 'BN Post',
+    'sudanpostnews.com': 'Sudan Post',
+    'rtmediasd.net': 'RT Media'
+  };
+  function nowTime(){
+    try { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch(e){ return ''; }
+  }
+  function applyBest(name, price){
+    if (!price || price <= 5000 || price >= 30000) return;
+    var cur = window.tomcoUSDTBest;
+    var expired = !cur || !cur.ts || (Date.now() - cur.ts > 15 * 60 * 1000);
+    if (expired || !cur || price >= cur.price) {
+      var b = { name: name, price: price, time: nowTime(), date: new Date().toLocaleDateString(), ts: Date.now() };
+      window.tomcoUSDTBest = b;
+      try { localStorage.setItem('tomco_usdt_source', JSON.stringify(b)); } catch(e){}
+      /* حدّث السعر الموازي الظاهر مباشرة */
+      try {
+        if (!window.tomcoRates) window.tomcoRates = {};
+        window.tomcoRates.usdParallel = price;
+        window.tomcoHighestUSDT = price;
+      } catch(e){}
+      try { if (document.getElementById('rates-list')) renderRates(); } catch(e){}
+    }
+  }
+  /* جلب صفحة واحدة وإرجاع أفضل رقم فيها */
+  function fetchOne(page){
+    var ctrl = new AbortController();
+    var to = setTimeout(function(){ try { ctrl.abort(); } catch(e){} }, 25000);
+    return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(page), { signal: ctrl.signal })
+      .then(function(r){ return r.text(); })
+      .then(function(txt){
+        clearTimeout(to);
+        var nums = (txt.match(/1[0-2],?\d{3}(\.\d+)?/g) || []).map(function(x){ return parseFloat(x.replace(/,/g, '')); }).filter(function(n){ return n > 5000 && n < 30000; });
+        if (!nums.length) return null;
+        var host = '';
+        try { host = new URL(page).hostname.replace(/^www\./, ''); } catch(e){}
+        return { name: NAMES[host] || host, price: Math.max.apply(null, nums) };
+      })
+      .catch(function(){ clearTimeout(to); return null; });
+  }
+  /* الدورة المتوازية: كل الصفحات مع بعض */
+  var warming = false;
+  function warmCycle(){
+    if (warming) return;
+    warming = true;
+    Promise.all(PAGES.map(fetchOne)).then(function(results){
+      var best = null;
+      results.forEach(function(r){
+        if (r && (!best || r.price > best.price)) best = r;
+      });
+      if (best) applyBest(best.name, best.price);
+      warming = false;
+    }).catch(function(){ warming = false; });
+  }
+  /* شغّل فوراً عند الفتح، وكرر كل 45 ثانية في الخلفية */
+  try { warmCycle(); } catch(e){}
+  setInterval(function(){ try { warmCycle(); } catch(e){} }, 45 * 1000);
+})();
+</script>
+
 </body></html>
