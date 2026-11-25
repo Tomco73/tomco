@@ -1,63 +1,27 @@
 {
-  "updatedAt": "2026-11-25T07:27:33.986Z",
-  "updatedAtLocal": "٢٥‏/١١‏/٢٠٢٦، ٩:٢٧:٣٣ ص",
+  "updatedAt": "2026-11-25T12:55:45.370Z",
+  "updatedAtLocal": "٢٥‏/١١‏/٢٠٢٦، ٢:٥٥:٤٥ م",
   "bestUSDT": {
-    "name": "Binance P2P",
-    "price": 12278.99
+    "name": "Rate Sudan",
+    "price": 31313
   },
+  "bestPrice": 31313,
+  "usdt_sdg": 31313,
+  "bestGold": 3517.899902,
+  "gold_per_gram_sdg": 3541594.99,
   "allSources": [
     {
       "name": "Binance P2P",
-      "price": 12278.99
+      "price": 12318
     },
     {
-      "name": "Binance P2P",
-      "price": 12222.06
+      "name": "Rate Sudan",
+      "price": 31313
     },
     {
-      "name": "Binance P2P",
-      "price": 12201
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12200.6
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12200.15
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12161.01
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12050.05
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12050
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12050
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12050
-    },
-    {
-      "name": "Binance P2P",
-      "price": 12000
-    },
-    {
-      "name": "Binance P2P",
-      "price": 11850
-    },
-    {
-      "name": "Binance P2P",
-      "price": 11800
+      "name": "Gold-API",
+      "price": 3517.9
     }
   ],
-  "sourcesChecked": 13
+  "sourcesChecked": 3
 }
