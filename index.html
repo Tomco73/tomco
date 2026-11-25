@@ -1136,5 +1136,49 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   setInterval(function(){ try { warmCycle(); } catch(e){} }, 45 * 1000);
 })();
 </script>
+<script>
+/* TOMCO v44 — التطبيق يقرأ الأسعار من السيرفر (rates.json) */
+(function(){
+  var RATES_URL = 'https://raw.githubusercontent.com/Tomco73/tomco/main/rates.json';
+  function fmtTime(iso){
+    try {
+      var d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch(e){ return ''; }
+  }
+  function fmtDate(iso){
+    try { return new Date(iso).toLocaleDateString(); }
+    catch(e){ return new Date().toLocaleDateString(); }
+  }
+  function applyServerRates(data){
+    if (!data || !data.bestUSDT || !data.bestUSDT.price) return;
+    /* اقبل بيانات السيرفر فقط لو عمرها أقل من 60 دقيقة */
+    var age = Date.now() - new Date(data.updatedAt).getTime();
+    if (isNaN(age) || age < 0 || age > 60 * 60 * 1000) return;
+    var price = parseFloat(data.bestUSDT.price);
+    var name = data.bestUSDT.name || 'السيرفر';
+    if (!price || price <= 5000 || price >= 30000) return;
+    var b = { name: name, price: price, time: fmtTime(data.updatedAt), date: fmtDate(data.updatedAt), ts: Date.now() };
+    window.tomcoUSDTBest = b;
+    try { localStorage.setItem('tomco_usdt_source', JSON.stringify(b)); } catch(e){}
+    try {
+      if (!window.tomcoRates) window.tomcoRates = {};
+      window.tomcoRates.usdParallel = price;
+      window.tomcoHighestUSDT = price;
+    } catch(e){}
+    try { if (document.getElementById('rates-list')) renderRates(); } catch(e){}
+  }
+  function fetchServer(){
+    try {
+      fetch(RATES_URL + '?t=' + Date.now())
+        .then(function(r){ return r.json(); })
+        .then(applyServerRates)
+        .catch(function(){});
+    } catch(e){}
+  }
+  try { fetchServer(); } catch(e){}
+  setInterval(function(){ try { fetchServer(); } catch(e){} }, 60 * 1000);
+})();
+</script>
 
 </body></html>
