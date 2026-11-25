@@ -1,27 +1,32 @@
 {
-  "updatedAt": "2026-11-25T13:21:52.933Z",
-  "updatedAtLocal": "٢٥‏/١١‏/٢٠٢٦، ٣:٢١:٥٢ م",
+  "updatedAt": "2026-11-25T13:37:38.538Z",
+  "updatedAtLocal": "٢٥‏/١١‏/٢٠٢٦، ٣:٣٧:٣٨ م",
   "bestUSDT": {
     "name": "Binance P2P",
-    "price": 12325.98
+    "price": 12319
   },
-  "bestPrice": 12325.98,
-  "usdt_sdg": 12325.98,
-  "bestGold": 3499,
-  "gold_per_gram_sdg": 1386615.78,
+  "bestPrice": 12319,
+  "usdt_sdg": 12319,
+  "bestGold": 3487.35,
+  "gold_per_gram_sdg": 1381216.41,
   "allSources": [
     {
       "name": "Binance P2P",
-      "price": 12325.98
+      "price": 12319
     },
     {
       "name": "Gold-API",
-      "price": 3499
+      "price": 3490.45
     },
     {
       "name": "PAX Gold (CoinGecko)",
-      "price": 3496.08
+      "price": 3483.26
+    },
+    {
+      "name": "Tether Gold (CoinGecko)",
+      "price": 3487.35
     }
   ],
-  "sourcesChecked": 3
+  "sourcesChecked": 4,
+  "note": "Blocked sources (Rate Sudan/Mtgr/OKX/KuCoin/GoldPrice) removed - they block GitHub servers"
 }
