@@ -631,4 +631,122 @@ window.fbStatus=()=> db ? t("Firebase متصل ✅","Firebase connected ✅") : 
 <script>
 if('serviceWorker' in navigator){ window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').then(function(reg){ reg.update(); setInterval(function(){ reg.update(); }, 60000); }).catch(function(e){}); }); let _reloading=false; navigator.serviceWorker.addEventListener('controllerchange', function(){ if(_reloading) return; _reloading=true; location.reload(); }); }
 </script>
+<script>
+/* TOMCO v36 — خيارات المنتج + ملاحظة للبائع — الصق هذا الكتلة كاملة قبل </body> */
+(function(){
+  function $(id){ return document.getElementById(id); }
+
+  /* 1) حقل الخيارات في نموذج المالك */
+  if ($('a-desc') && !$('a-opts')) {
+    var ta = document.createElement('textarea');
+    ta.id = 'a-opts';
+    ta.placeholder = 'خيارات المنتج (اختياري) - كل خيار في سطر: مثال: ساعة / نظارة / خاتم';
+    ta.rows = 3;
+    ta.style.cssText = 'width:100%;padding:12px;border:1px solid #ddd;border-radius:12px;font-family:inherit;font-size:15px;resize:vertical;margin-top:8px';
+    $('a-desc').after(ta);
+  }
+
+  /* 2) حقل الملاحظة في صفحة السلة */
+  if ($('cart-total') && !$('order-note')) {
+    var nt = document.createElement('textarea');
+    nt.id = 'order-note';
+    nt.placeholder = 'ملاحظة للبائع (اختياري): مثال: عايز النظارة السوداء / التوصيل بعد العصر';
+    nt.rows = 2;
+    nt.style.cssText = 'width:100%;padding:12px;border:1px solid #ddd;border-radius:12px;font-family:inherit;font-size:15px;resize:vertical;margin-top:8px';
+    $('cart-total').after(nt);
+  }
+
+  /* 3) حفظ المنتج مع الخيارات */
+  var _origAdd = window.addProduct;
+  window.addProduct = async function(){
+    var optsEl = $('a-opts');
+    var opts = optsEl ? optsEl.value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean) : [];
+    var r = _origAdd ? _origAdd.apply(this, arguments) : null;
+    if (r && r.then) { try { await r; } catch(e){} }
+    try {
+      await new Promise(function(res){ setTimeout(res, 900); });
+      var newest = null;
+      if (typeof products !== 'undefined' && products.length) {
+        newest = products.slice().sort(function(a,b){ return b.id - a.id; })[0];
+      }
+      if (newest && opts.length) {
+        newest.opts = opts;
+        try { if (typeof db !== 'undefined' && db && typeof updateDoc !== 'undefined') { await updateDoc(doc(db, "products", String(newest.id)), { opts: opts }); } } catch(e){}
+        try { localStorage.setItem('tomco_products', JSON.stringify(products)); } catch(e){}
+        try { render(); renderAdmin(); } catch(e){}
+      }
+      if (optsEl) optsEl.value = '';
+    } catch(e){}
+  };
+
+  /* 4) قائمة الخيارات داخل صفحة المنتج */
+  var _openP = window.openP;
+  window.openP = function(id){
+    _openP(id);
+    try {
+      var p = products.find(function(x){ return x.id == id; });
+      if (p && p.opts && p.opts.length && !$('opt-sel-' + id)) {
+        var sel = document.createElement('select');
+        sel.id = 'opt-sel-' + id;
+        sel.style.cssText = 'width:100%;padding:12px;border:1px solid #C9A227;border-radius:12px;margin-top:10px;font-size:15px;font-family:inherit';
+        sel.innerHTML = '<option value="" disabled selected>' + (typeof t2 !== 'undefined' ? t2('اختر النوع...', 'Choose type...') : 'اختر النوع...') + '</option>' + p.opts.map(function(o){ return '<option value="' + o + '">' + o + '</option>'; }).join('');
+        var sheet = $('sheet'); if (sheet) sheet.appendChild(sel);
+      }
+    } catch(e){}
+  };
+
+  /* 5) الإضافة للسلة مع النوع */
+  var _addCart = window.addCart;
+  window.addCart = function(id){
+    try {
+      var p = products.find(function(x){ return x.id == id; });
+      var sel = $('opt-sel-' + id);
+      var opt = sel ? sel.value : '';
+      if (p && p.opts && p.opts.length && !opt) { alert(typeof t2 !== 'undefined' ? t2('اختار النوع أولاً', 'Choose the type first') : 'اختار النوع أولاً'); return; }
+      if (p && p.status == 'تم البيع') { return _addCart(id); }
+      var it = cart.find(function(x){ return x.id == id && (x.opt || '') == (opt || ''); });
+      if (it) it.qty++; else cart.push({ id: id, qty: 1, opt: opt || '' });
+      localStorage.setItem('tomco_cart', JSON.stringify(cart));
+      render();
+      alert(typeof t2 !== 'undefined' ? t2('تمت الإضافة للسلة 🧺', 'Added to cart 🧺') : 'تمت الإضافة للسلة 🧺');
+    } catch(e){ _addCart(id); }
+  };
+
+  /* 6) إظهار النوع في قائمة السلة بعد كل render */
+  var _render = window.render;
+  window.render = function(){
+    _render();
+    try {
+      var list = $('cart-list'); if (!list) return;
+      var ps = list.querySelectorAll('p');
+      for (var i = 0; i < ps.length && i < cart.length; i++) {
+        if (cart[i].opt && ps[i].innerHTML.indexOf('النوع:') < 0) {
+          ps[i].innerHTML = ps[i].innerHTML.replace(' × ', ' - النوع: ' + cart[i].opt + ' × ');
+        }
+      }
+    } catch(e){}
+  };
+
+  /* 7) إتمام الطلب: النوع + الملاحظة في رسالة الواتساب */
+  window.checkout = function(){
+    if (!cart.length) { alert(typeof t2 !== 'undefined' ? t2('السلة فارغة', 'Cart is empty') : 'السلة فارغة'); return; }
+    var noteEl = $('order-note'); var note = noteEl ? noteEl.value.trim() : '';
+    var txt = cart.map(function(it){
+      var p = products.find(function(x){ return x.id == it.id; });
+      return (p ? (typeof t !== 'undefined' ? t(p.ar, p.en) : p.ar) : '') + (it.opt ? (' - ' + (typeof t2 !== 'undefined' ? t2('النوع:', 'Type:') : 'النوع:') + ' ' + it.opt) : '') + ' × ' + it.qty;
+    }).join('\n') + (note ? '\n' + (typeof t2 !== 'undefined' ? t2('ملاحظة:', 'Note:') : 'ملاحظة:') + ' ' + note : '');
+    var tr = $('track'); if (tr) tr.textContent = typeof t2 !== 'undefined' ? t2('تم الاستلام - قيد التجهيز', 'Received - Preparing') : 'تم الاستلام';
+    window.open('https://wa.me/249902409032?text=' + encodeURIComponent('طلب جديد من تومكو:\n' + txt), '_blank');
+  };
+
+  /* 8) الاستفسار واتساب: مع النوع المختار */
+  window.waInquiry = function(id){
+    var p = products.find(function(x){ return x.id == id; });
+    var sel = $('opt-sel-' + id); var opt = sel ? sel.value : '';
+    var n = +(localStorage.getItem('tomco_wa') || 0) + 1; localStorage.setItem('tomco_wa', n);
+    window.open('https://wa.me/249902409032?text=' + encodeURIComponent((typeof t2 !== 'undefined' ? t2('مرحباً، أستفسر عن', 'Hello, I am asking about') : '') + ' ' + (typeof t !== 'undefined' ? t(p.ar, p.en) : p.ar) + ' #' + p.id + (opt ? ' - ' + (typeof t2 !== 'undefined' ? t2('النوع', 'Type') : 'النوع') + ': ' + opt : '') + ' - ' + (typeof t2 !== 'undefined' ? t2('السعر', 'Price') : '') + ' ' + p.priceTxt), '_blank');
+  };
+})();
+        </script>
+
 </body></html>
