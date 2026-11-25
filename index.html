@@ -1240,4 +1240,100 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
 })();
 </script>
 <script src="server-truth.js"></script>
+<script>
+/* ===== TOMCO PATCH: كمية 1-1000 + صورة المنتج في الطلب ===== */
+(function(){
+  function clampQ(v){
+    v = parseInt(v, 10);
+    if (isNaN(v)) v = 1;
+    if (v < 1) v = 1;
+    if (v > 1000) v = 1000;
+    return v;
+  }
+  function saveCart(){
+    try{ localStorage.setItem('tomco_cart', JSON.stringify(cart)); }catch(e){}
+  }
+
+  /* --- 1) أزرار + و - وحقل كتابة الكمية في السلة --- */
+  window.tomcoQty = function(i, d){
+    if(!cart[i]) return;
+    cart[i].qty = clampQ((cart[i].qty || 1) + d);
+    saveCart(); render();
+  };
+  window.tomcoQtySet = function(i, el){
+    if(!cart[i]) return;
+    var v = parseInt(el.value, 10);
+    if (!isNaN(v) && v > 1000){ alert(t2('الحد الأقصى للكمية هو 1000','Maximum quantity is 1000')); }
+    cart[i].qty = clampQ(el.value);
+    saveCart(); render();
+  };
+
+  function enhanceCart(){
+    var cl = document.getElementById('cart-list');
+    if(!cl || !cart || !cart.length) return;
+    var rows = cl.querySelectorAll('p');
+    rows.forEach(function(row, i){
+      var it = cart[i]; if(!it) return;
+      var p = (typeof products !== 'undefined') ? products.find(function(x){ return x.id == it.id; }) : null;
+      if(!p) return;
+      if(row.dataset.qtyDone === '1') return;
+      row.dataset.qtyDone = '1';
+      var unit = 0;
+      try{ unit = livePrice(p); }catch(e){ unit = 0; }
+      var img = (p.gallery && p.gallery[0]) ? p.gallery[0] : (p.img || '');
+      row.style.cssText = 'display:flex;gap:10px;align-items:center;border:1px solid #eee;border-radius:12px;padding:8px;margin-bottom:8px;background:#fff';
+      row.innerHTML =
+        '<img src="' + img + '" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0" onerror="this.style.display=\'none\'">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + t(p.ar, p.en) + '</div>' +
+          '<div style="font-size:12px;color:#666">' + unit.toLocaleString() + ' × ' + it.qty + ' = <b style="color:#111">' + (unit * it.qty).toLocaleString() + ' ج.س</b></div>' +
+          (it.opt ? '<div style="font-size:12px;color:#0A7A3D">🔹 ' + it.opt + '</div>' : '') +
+          (it.note ? '<div style="font-size:12px;color:#666">📝 ' + it.note + '</div>' : '') +
+          '<div style="display:flex;align-items:center;gap:6px;margin-top:6px">' +
+            '<button onclick="tomcoQty(' + i + ',-1)" style="width:32px;height:32px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:18px;cursor:pointer">−</button>' +
+            '<input type="number" min="1" max="1000" value="' + it.qty + '" onchange="tomcoQtySet(' + i + ',this)" onblur="tomcoQtySet(' + i + ',this)" style="width:70px;height:32px;text-align:center;border:1px solid #ddd;border-radius:8px;font-size:15px;font-weight:800" />' +
+            '<button onclick="tomcoQty(' + i + ',1)" style="width:32px;height:32px;border-radius:8px;border:0;background:#0A1628;color:#fff;font-size:18px;cursor:pointer">+</button>' +
+            '<span style="font-size:11px;color:#999">' + t('الكمية من 1 إلى 1000','Qty 1 to 1000') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<button onclick="removeCart(' + i + ')" style="background:#fff;border:1px solid #eee;border-radius:8px;padding:6px 10px;cursor:pointer">✕</button>';
+    });
+  }
+
+  /* شغّل التحسين بعد كل render */
+  if (typeof window.render === 'function'){
+    var _render = window.render;
+    window.render = function(){ _render(); try{ enhanceCart(); }catch(e){} };
+  }
+
+  /* --- 2) إتمام الطلب: الكمية + صورة المنتج تصل للمالك --- */
+  window.checkout = function(){
+    if(!cart.length){ alert(t2('السلة فارغة','Cart is empty')); return; }
+    var grand = 0;
+    var lines = cart.map(function(it){
+      var p = products.find(function(x){ return x.id == it.id; });
+      if(!p) return '';
+      var unit = 0;
+      try{ unit = livePrice(p); }catch(e){ unit = 0; }
+      var total = unit * it.qty;
+      grand += total;
+      var img = (p.gallery && p.gallery[0]) ? p.gallery[0] : (p.img || '');
+      var extra = '';
+      if(it.opt) extra += '\n🔹 ' + t2('الخيار: ','Option: ') + it.opt;
+      if(it.note) extra += '\n📝 ' + t2('ملاحظة: ','Note: ') + it.note;
+      return '🛒 ' + t(p.ar, p.en) +
+             '\n🔢 ' + t2('الكمية: ','Quantity: ') + it.qty +
+             '\n💰 ' + t2('السعر: ','Price: ') + unit.toLocaleString() + ' × ' + it.qty + ' = ' + total.toLocaleString() + ' ' + t2('ج.س','SDG') +
+             extra +
+             '\n🖼️ ' + t2('صورة المنتج:','Product image:') + '\n' + img;
+    }).filter(Boolean).join('\n\n— — —\n\n');
+    var msg = 'طلب جديد من تومكو:\n\n' + lines +
+              '\n\n💰 ' + t2('الإجمالي الكلي: ','Grand total: ') + grand.toLocaleString() + ' ' + t2('ج.س','SDG');
+    var tr = document.getElementById('track');
+    if(tr) tr.textContent = t2('تم الاستلام - قيد التجهيز','Received - Preparing');
+    window.open('https://wa.me/249902409032?text=' + encodeURIComponent(msg), '_blank');
+  };
+})();
+</script>
+
 </body></html>
