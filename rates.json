@@ -1,0 +1,63 @@
+{
+  "updatedAt": "2026-11-25T07:27:33.986Z",
+  "updatedAtLocal": "٢٥‏/١١‏/٢٠٢٦، ٩:٢٧:٣٣ ص",
+  "bestUSDT": {
+    "name": "Binance P2P",
+    "price": 12278.99
+  },
+  "allSources": [
+    {
+      "name": "Binance P2P",
+      "price": 12278.99
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12222.06
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12201
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12200.6
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12200.15
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12161.01
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12050.05
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12050
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12050
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12050
+    },
+    {
+      "name": "Binance P2P",
+      "price": 12000
+    },
+    {
+      "name": "Binance P2P",
+      "price": 11850
+    },
+    {
+      "name": "Binance P2P",
+      "price": 11800
+    }
+  ],
+  "sourcesChecked": 13
+}
