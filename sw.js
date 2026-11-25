@@ -1,5 +1,5 @@
 /* TOMCO Service Worker - v7 (auto-update) */
-const CACHE = 'tomco-v11';
+const CACHE = 'tomco-v12';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 /* 1) التثبيت: لو ملف واحد فشل (مثلاً أيقونة)، باقي الملفات تتخزن عادي
