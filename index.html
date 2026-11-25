@@ -1225,5 +1225,40 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   setInterval(function(){ try { applyServer(); } catch(e){} }, 60 * 1000);
 })();
 </script>
+<script>
+/* TOMCO v46 — تنبيه السعر القديم: شريط أحمر لو السيرفر وقف */
+(function(){
+  function fmtTime(ts){
+    try {
+      var d = new Date(ts);
+      var h = d.getHours(); var m = d.getMinutes();
+      var ampm = h >= 12 ? 'م' : 'ص';
+      var hh = h % 12; if (hh === 0) hh = 12;
+      return hh + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm + ' • ' + d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate();
+    } catch(e){ return ''; }
+  }
+  function checkStale(){
+    try {
+      var b = JSON.parse(localStorage.getItem('tomco_usdt_source') || 'null');
+      var stale = !b || !b.ts || (Date.now() - b.ts > 30 * 60 * 1000);
+      var old = document.getElementById('tomco-stale-banner');
+      if (stale) {
+        if (!old) {
+          var div = document.createElement('div');
+          div.id = 'tomco-stale-banner';
+          div.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c62828;color:#fff;text-align:center;padding:8px 10px;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+          document.body.appendChild(div);
+        }
+        document.getElementById('tomco-stale-banner').textContent =
+          '⚠️ تنبيه: السعر المعروض قديم — السيرفر متوقف — آخر تحديث: ' + (b && b.ts ? fmtTime(b.ts) : 'غير معروف');
+      } else {
+        if (old) old.remove();
+      }
+    } catch(e){}
+  }
+  try { checkStale(); } catch(e){}
+  setInterval(function(){ try { checkStale(); } catch(e){} }, 60 * 1000);
+})();
+</script>
 
 </body></html>
