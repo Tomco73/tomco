@@ -1,78 +1,92 @@
-// Tomco - v4 - 8 sources
+// update-rates.mjs - TOMCO 8 sources
+// 5 SDG sources + 3 Gold sources
 import fs from 'node:fs';
 
-async function getBinance(){
-  try{
-    const r = await fetch('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({fiat:'SDG',page:1,rows:5,tradeType:'BUY',asset:'USDT'})
-    });
-    const j = await r.json();
-    return (j.data||[]).map(it=>({name:'B'+'inance P2P',source:'binance_p2p',price:Number(it.adv.price)}));
-  }catch(e){ return []; }
-}
-async function getRateSudan(){
-  try{
-    const r = await fetch('https://ratesudan.com/rate/usd');
-    const html = await r.text();
-    const m = html.match(/بيع[^0-9]{0,20}([\d,]+\.?\d*)/);
-    return m ? [{name:'Rate Sudan',source:'ratesudan',price:Number(m[1].replace(/,/g,'')),type:'sell'}] : [];
-  }catch(e){ return []; }
-}
-async function getMtgr(){
-  try{
-    const r = await fetch('https://mtgr-sd.com/');
-    const html = await r.text();
-    const m = html.match(/سعر الشراء[^0-9]{0,20}([\d,]+\.?\d*)/);
-    return m ? [{name:'Mtgr-SD',source:'mtgr-sd',price:Number(m[1].replace(/,/g,'')),type:'buy'}] : [];
-  }catch(e){ return []; }
-}
-async function getOKX(){
-  try{
-    const r = await fetch('https://www.okx.com/priapi/v5/c2c/tradingOrders/book?tether=USDT&fiatCurrency=SDG&side=sell&page=1&pageSize=5');
-    const j = await r.json();
-    return (j?.data?.sell||[]).map(it=>({name:'O'+'KX P2P',source:'okx_p2p',price:Number(it.price)}));
-  }catch(e){ return []; }
-}
-async function getKuCoin(){
-  try{
-    const r = await fetch('https://www.kucoin.com/_api/otc/ad/list?currency=USDT&legal=SDG&side=SELL&page=1&pageSize=5');
-    const j = await r.json();
-    return (j?.data?.items||[]).map(it=>({name:'K'+'uCoin P2P',source:'kucoin_p2p',price:Number(it.price)}));
-  }catch(e){ return []; }
-}
-async function getGold1(){
-  try{ const r=await fetch('https://data-asg.goldprice.org/dbXRates/USD'); const j=await r.json(); return Number(j?.items?.[0]?.xauPrice||0); }catch(e){ return 0; }
-}
-async function getGold2(){
-  try{ const r=await fetch('https://gold-api.com/api/XAU/USD'); const j=await r.json(); return Number(j?.price||0); }catch(e){ return 0; }
-}
-async function getGold3(){
-  try{ const r=await fetch('https://api.metals.live/v1/spot?metals=gold'); const j=await r.json(); return Number(j?.[0]?.price||j?.gold||0); }catch(e){ return 0; }
-}
-const all = [...(await getBinance()), ...(await getRateSudan()), ...(await getMtgr()), ...(await getOKX()), ...(await getKuCoin())];
-const prices = all.map(s=>s.price).filter(n=>n>0);
-const highest = prices.length ? Math.max(...prices) : 12200;
-const bestSource = all.find(s=>s.price===highest)?.name || 'B'+'inance P2P';
-const goldPrices = [await getGold1(), await getGold2(), await getGold3()].filter(n=>n>1000);
-goldPrices.sort((a,b)=>a-b);
-const goldUsd = goldPrices.length ? goldPrices[Math.floor(goldPrices.length/2)] : 0;
-const goldGram = goldUsd ? Math.round((goldUsd/31.1035)*highest) : 1182772;
+const headers = { 'User-Agent': 'Mozilla/5.0', 'Content-Type': 'application/json' };
+const allSources = [];
+const log = (name, price) => { if (price && price > 0) allSources.push({ name, price: Number(price.toFixed(2)) }); };
+
+// 1 - Binance P2P
+try {
+  const r = await fetch('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
+    method: 'POST', headers,
+    body: JSON.stringify({ asset: 'USDT', fiat: 'SDG', tradeType: 'BUY', page: 1, rows: 5, payTypes: [] })
+  });
+  const j = await r.json();
+  const p = Number(j?.data?.[0]?.adv?.price);
+  log('Binance P2P', p);
+} catch (e) { console.log('Binance fail', e.message); }
+
+// 2 - Rate Sudan
+try {
+  const r = await fetch('https://ratesudan.com/rate/usd', { headers });
+  const t = await r.text();
+  const m = t.match(/(\d{4,5}\.\d+|\d{4,5})/);
+  if (m) log('Rate Sudan', Number(m[1]));
+} catch (e) { console.log('Rate Sudan fail', e.message); }
+
+// 3 - Mtgr-SD
+try {
+  const r = await fetch('https://mtgr-sd.com/', { headers });
+  const t = await r.text();
+  const m = t.match(/USDT[^0-9]{0,30}(\d{4,5}\.\d+|\d{4,5})/i) || t.match(/(\d{4,5}\.\d+)/);
+  if (m) log('Mtgr-SD', Number(m[1]));
+} catch (e) { console.log('Mtgr fail', e.message); }
+
+// 4 - OKX P2P
+try {
+  const r = await fetch('https://www.okx.com/api/v5/p2p/otc-advertisements?quoteCurrency=SDG&baseCurrency=USDT&side=buy', { headers });
+  const j = await r.json();
+  const p = Number(j?.data?.[0]?.price);
+  log('OKX P2P', p);
+} catch (e) { console.log('OKX fail', e.message); }
+
+// 5 - KuCoin P2P
+try {
+  const r = await fetch('https://www.kucoin.com/api/v1/otc/public/ad/list?currency=SDG&cryptoCurrency=USDT&side=BUY', { headers });
+  const j = await r.json();
+  const p = Number(j?.data?.[0]?.price);
+  log('KuCoin P2P', p);
+} catch (e) { console.log('KuCoin fail', e.message); }
+
+// --- Gold ---
+const goldPrices = [];
+try {
+  const r = await fetch('https://data-asg.goldprice.org/dbXRates/USD', { headers });
+  const j = await r.json();
+  const p = Number(j?.items?.[0]?.curr);
+  if (p) { goldPrices.push(p); log('GoldPrice.org', p); }
+} catch (e) { console.log('GoldPrice fail', e.message); }
+try {
+  const r = await fetch('https://api.gold-api.com/price/XAU', { headers });
+  const j = await r.json();
+  const p = Number(j?.price);
+  if (p) { goldPrices.push(p); log('Gold-API', p); }
+} catch (e) { console.log('Gold-API fail', e.message); }
+try {
+  const r = await fetch('https://api.metals.live/v1/spot', { headers });
+  const j = await r.json();
+  const p = Number(j?.[0]?.gold);
+  if (p) { goldPrices.push(p); log('Metals.live', p); }
+} catch (e) { console.log('Metals fail', e.message); }
+
+// Best SDG = highest price
+const sdgPrices = allSources.filter(s => !s.name.toLowerCase().includes('gold') && !s.name.includes('Metals')).map(s => s.price);
+const bestPrice = sdgPrices.length ? Math.max(...sdgPrices) : 0;
+const bestSource = allSources.find(s => s.price === bestPrice)?.name || 'Binance P2P';
+goldPrices.sort((a, b) => a - b);
+const bestGold = goldPrices.length ? goldPrices[Math.floor(goldPrices.length / 2)] : 0;
+
 const out = {
   updatedAt: new Date().toISOString(),
-  sourcesChecked: all.length,
-  sources: ['B'+'inance P2P','Rate Sudan','Mtgr-SD','O'+'KX P2P','K'+'uCoin P2P'],
-  goldSources: ['GoldPrice','Gold-API','Metals'],
-  goldPrices: goldPrices,
-  usd_sdg: highest, usdt_sdg: highest,
-  bestPrice: highest, bestSource,
-  gold_per_gram_sdg: goldGram, gold_usd_per_ounce: goldUsd,
-  allSources: all,
-  rates: {
-    USDT: { buy: highest, sell: highest, source: bestSource },
-    USD: { buy: highest, sell: highest, source: bestSource },
-    GOLD_GRAM: { price: goldGram, source: 'median gold + best rate' }
-  }
+  updatedAtLocal: new Date().toLocaleString('ar-SD', { timeZone: 'Africa/Khartoum' }),
+  bestUSDT: { name: bestSource, price: bestPrice },
+  bestPrice: bestPrice,
+  usdt_sdg: bestPrice,
+  bestGold: bestGold,
+  gold_per_gram_sdg: bestGold && bestPrice ? Number(((bestGold / 31.1035) * bestPrice).toFixed(2)) : 0,
+  allSources,
+  sourcesChecked: allSources.length
 };
 fs.writeFileSync('rates.json', JSON.stringify(out, null, 2));
-console.log('OK', highest, bestSource, goldUsd, goldGram);
+console.log('Done:', out.bestUSDT, 'Gold:', bestGold, 'Sources:', allSources.length);
