@@ -1,100 +1,26 @@
-name: Update TOMCO Rates (Server)
-
-# السيرفر: بيشتغل كل 15 دقيقة حتى والتطبيق مقفول
-# بيجيب أعلى سعر USDT من كل المصادر وبيحفظو في rates.json
+name: Update Rates
 on:
   schedule:
-    - cron: '*/15 * * * *'  # كل 15 دقيقة
-  workflow_dispatch:  # زر تشغيل يدوي من GitHub
-
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 permissions:
   contents: write
-
 jobs:
   update-rates:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Fetch rates from all sources
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Build rates.json
-        run: |
-          node << 'EOF'
-          const fs = require('fs');
-
-          const PAGES = [
-            ['ETCurrency', 'https://etcurrency.com/currency/usd-to-sdg-black-market'],
-            ['OpenRate', 'https://openrate.live/usdt-sdg'],
-            ['ETCurrency', 'https://etcurrency.com/currency/usdt-to-sdg'],
-            ['OpenRate', 'https://openrate.live/p2p/markets/sdg'],
-            ['P2P Army (BingX)', 'https://p2p.army/en/p2p/fiats/SDG'],
-            ['أخبار السودان', 'https://sudanakhbar.com/?s=سعر الدولار الرقمي USDT السوق الموازي'],
-            ['موجز السودان', 'https://mujaz.sudanalaan.net/'],
-            ['هدهد نيوز', 'https://hodhodnews.net/'],
-            ['منصة السودان', 'https://sudanplatform.net/'],
-            ['BN Post', 'https://bnpost.net/'],
-            ['Sudan Post', 'https://sudanpostnews.com/'],
-            ['RT Media', 'https://rtmediasd.net/'],
-          ];
-
-          async function fetchText(url, ms = 25000) {
-            const ctrl = new AbortController();
-            const to = setTimeout(() => ctrl.abort(), ms);
-            try {
-              const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
-              return await r.text();
-            } catch (e) { return ''; }
-            finally { clearTimeout(to); }
-          }
-          function extractNums(txt) {
-            const m = txt.match(/1[0-2],?\d{3}(\.\d+)?/g) || [];
-            return m.map(x => parseFloat(x.replace(/,/g, ''))).filter(n => n > 5000 && n < 30000);
-          }
-
-          (async () => {
-            const results = [];
-            // 1) Binance P2P — أعلى سعر بيع
-            try {
-              const payTypes = [['BANK', 'BANK'], ['Bankak', 'Bankak'], ['Fawry', 'Fawry']];
-              for (const pt of payTypes) {
-                const url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
-                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ fiat: 'SDG', page: 1, rows: 10, tradeType: 'SELL', asset: 'USDT', countries: [], proMerchantAds: false, shieldMerchantAds: false, publisherType: null, payTypes: pt, classifies: ['mass', 'profession'] }) });
-                const j = await r.json();
-                (j.data || []).forEach(a => { const p = parseFloat(a.adv && a.adv.price); if (p) results.push({ name: 'Binance P2P', price: p }); });
-              }
-            } catch (e) {}
-
-            // 2) كل الصفحات مع بعض
-            await Promise.all(PAGES.map(async ([name, page]) => {
-              const txt = await fetchText('https://api.allorigins.win/raw?url=' + encodeURIComponent(page));
-              const nums = extractNums(txt);
-              if (nums.length) results.push({ name, price: Math.max(...nums) });
-            }));
-
-            results.sort((a, b) => b.price - a.price);
-            const best = results[0] || null;
-            const out = {
-              updatedAt: new Date().toISOString(),
-              updatedAtLocal: new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Khartoum' }),
-              bestUSDT: best,
-              allSources: results.slice(0, 13),
-              sourcesChecked: PAGES.length + 1
-            };
-            fs.writeFileSync('rates.json', JSON.stringify(out, null, 2));
-            console.log('Best:', best);
-          })();
-          EOF
-
+        run: node update-rates.mjs
       - name: Commit rates.json
         run: |
-          git config user.name "tomco-rates-bot"
-          git config user.email "rates@tomco.bot"
+          git config user.name "Tomco73"
+          git config user.email "mohaltoam@gmail.com"
           git add rates.json
-          git diff --cached --quiet || git commit -m "تحديث الأسعار التلقائي 🤖"
+          git diff --cached --quiet || git commit -m "Update rates"
           git push
