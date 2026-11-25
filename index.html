@@ -1239,5 +1239,35 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
 
 })();
 </script>
+<script>
+/* ===== TOMCO PATCH: إلغاء رابط صورة المنتج من رسالة الواتساب ===== */
+/* باقي التفاصيل (الكمية + السعر + الخيار + الملاحظة) زي ما هي */
+(function(){
+  window.checkout = function(){
+    if(!cart.length){ alert(t2('السلة فارغة','Cart is empty')); return; }
+    var grand = 0;
+    var lines = cart.map(function(it){
+      var p = products.find(function(x){ return x.id == it.id; });
+      if(!p) return '';
+      var unit = 0;
+      try{ unit = livePrice(p); }catch(e){ unit = 0; }
+      var total = unit * it.qty;
+      grand += total;
+      var extra = '';
+      if(it.opt) extra += '\n🔹 ' + t2('الخيار: ','Option: ') + it.opt;
+      if(it.note) extra += '\n📝 ' + t2('ملاحظة: ','Note: ') + it.note;
+      return '🛒 ' + t(p.ar, p.en) +
+             '\n🔢 ' + t2('الكمية: ','Quantity: ') + it.qty +
+             '\n💰 ' + t2('السعر: ','Price: ') + unit.toLocaleString() + ' × ' + it.qty + ' = ' + total.toLocaleString() + ' ' + t2('ج.س','SDG') +
+             extra;
+    }).filter(Boolean).join('\n\n— — —\n\n');
+    var msg = 'طلب جديد من تومكو:\n\n' + lines +
+              '\n\n💰 ' + t2('الإجمالي الكلي: ','Grand total: ') + grand.toLocaleString() + ' ' + t2('ج.س','SDG');
+    var tr = document.getElementById('track');
+    if(tr) tr.textContent = t2('تم الاستلام - قيد التجهيز','Received - Preparing');
+    window.open('https://wa.me/249902409032?text=' + encodeURIComponent(msg), '_blank');
+  };
+})();
+</script>
 
 </body></html>
