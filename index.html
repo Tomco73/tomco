@@ -749,4 +749,105 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
 })();
         </script>
 
+<script>
+/* TOMCO v37 — إظهار مصدر أعلى سعر USDT + وقت آخر تحديث — الصق قبل </body> */
+(function(){
+  var SOURCE_NAMES = [
+    ['p2p.binance.com', 'Binance P2P'],
+    ['etcurrency.com/currency/usd-to-sdg-black-market', 'ETCurrency'],
+    ['etcurrency.com/currency/usdt-to-sdg', 'ETCurrency'],
+    ['openrate.live/usdt-sdg', 'OpenRate'],
+    ['openrate.live/p2p/markets/sdg', 'OpenRate'],
+    ['p2p.army', 'P2P Army (BingX)'],
+    ['sudanakhbar.com', 'أخبار السودان'],
+    ['mujaz.sudanalaan.net', 'موجز السودان'],
+    ['hodhodnews.net', 'هدهد نيوز'],
+    ['sudanplatform.net', 'منصة السودان'],
+    ['bnpost.net', 'BN Post'],
+    ['sudanpostnews.com', 'Sudan Post'],
+    ['rtmediasd.net', 'RT Media']
+  ];
+  function nameFor(url){
+    for (var i = 0; i < SOURCE_NAMES.length; i++) {
+      if (url.indexOf(SOURCE_NAMES[i][0]) !== -1) return SOURCE_NAMES[i][1];
+    }
+    return 'مصدر خارجي';
+  }
+  function nowTime(){
+    try { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch(e){ return ''; }
+  }
+  function loadBest(){
+    try { return JSON.parse(localStorage.getItem('tomco_usdt_source') || 'null'); } catch(e){ return null; }
+  }
+  function saveBest(b){
+    try { localStorage.setItem('tomco_usdt_source', JSON.stringify(b)); } catch(e){}
+    window.tomcoUSDTBest = b;
+  }
+  window.tomcoUSDTBest = loadBest();
+
+  function consider(name, price){
+    if (!price || price <= 5000 || price >= 30000) return;
+    var cur = window.tomcoUSDTBest;
+    if (!cur || price > cur.price) {
+      saveBest({ name: name, price: price, time: nowTime(), date: new Date().toLocaleDateString() });
+      try { if (document.getElementById('rates-list')) renderRates(); } catch(e){}
+    }
+  }
+
+  /* تتبّع كل طلب سعر: Binance + صفحات الأخبار عبر allorigins */
+  var _fetch = window.fetch;
+  window.fetch = function(url, opts){
+    var u = String((url && url.url) || url || '');
+    var p = _fetch.apply(this, arguments);
+    try {
+      p.then(function(res){
+        try {
+          var clone = res.clone();
+          if (u.indexOf('p2p.binance.com') !== -1) {
+            clone.json().then(function(jj){
+              (jj.data || []).forEach(function(a){
+                var pr = parseFloat(a.adv && a.adv.price);
+                if (pr) consider('Binance P2P', pr);
+              });
+            }).catch(function(){});
+          } else if (u.indexOf('api.allorigins.win') !== -1) {
+            clone.text().then(function(txt){
+              var nums = (txt.match(/1[0-2],?\d{3}(\.\d+)?/g) || []).map(function(x){ return parseFloat(x.replace(/,/g, '')); }).filter(function(n){ return n > 5000 && n < 30000; });
+              if (nums.length) consider(nameFor(u), Math.max.apply(null, nums));
+            }).catch(function(){});
+          }
+        } catch(e){}
+      }).catch(function(){});
+    } catch(e){}
+    return p;
+  };
+
+  /* عرض سطر المصدر تحت بطاقة أعلى سعر USDT */
+  var _renderRates = window.renderRates;
+  window.renderRates = function(){
+    _renderRates();
+    try {
+      var box = document.getElementById('rates-list'); if (!box) return;
+      var cards = box.querySelectorAll('.gold-card');
+      var usdtCard = null;
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].textContent.indexOf('أعلى سعر USDT') !== -1 || cards[i].textContent.indexOf('Highest available USDT') !== -1) { usdtCard = cards[i]; break; }
+      }
+      if (!usdtCard) return;
+      var old = document.getElementById('usdt-source-line');
+      if (old) old.remove();
+      var best = window.tomcoUSDTBest;
+      var line = document.createElement('div');
+      line.id = 'usdt-source-line';
+      line.style.cssText = 'font-size:13px;margin-top:8px;color:#D6FFE4;font-weight:700';
+      line.textContent = best
+        ? 'المصدر: ' + best.name + ' ✅ • آخر تحديث: ' + best.time + (best.date ? ' • ' + best.date : '')
+        : 'المصدر: بانتظار التحديث التالي... (بيظهر هنا بعد أول تحديث تلقائي)';
+      usdtCard.appendChild(line);
+    } catch(e){}
+  };
+})();
+</script>
+
 </body></html>
