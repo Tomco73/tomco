@@ -948,5 +948,37 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   };
 })();
   </script>
+  <script>
+/* TOMCO v41 — تحديث ديناميكي كل 30 ثانية لكل التطبيق — الصق قبل </body> */
+(function(){
+  /* حماية: لو التحديث السابق لسه شغال — ما تبدأ واحد جديد فوقو */
+  var _fetchLiveRates = window.fetchLiveRates;
+  window.fetchLiveRates = async function(){
+    if (window.tomcoLiveRunning) return;
+    window.tomcoLiveRunning = true;
+    try { await _fetchLiveRates(); }
+    catch(e){}
+    window.tomcoLiveRunning = false;
+  };
+
+  function tomcoTick(){
+    try {
+      if (document.hidden) return; /* التطبيق ما مفتوح قدامك — ما تصرف نت */
+      try { render(); } catch(e){}        /* إعادة حساب أسعار العروض + إعادة رسم العروض */
+      try { renderRates(); } catch(e){}   /* إعادة رسم صفحة العملات */
+      try { fetchLiveRates(); } catch(e){} /* جلب أسعار جديدة من المصادر */
+      /* فحص نسخة جديدة من التطبيق */
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then(function(reg){ if (reg) reg.update(); }).catch(function(){});
+        }
+      } catch(e){}
+    } catch(e){}
+  }
+
+  setInterval(tomcoTick, 30000); /* كل 30 ثانية */
+  setTimeout(tomcoTick, 2000);   /* تحديث فوري بعد الفتح بثانيتين */
+})();
+  </script>
   
 </body></html>
