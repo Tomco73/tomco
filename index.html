@@ -849,5 +849,30 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   };
 })();
 </script>
-
+<script>
+/* TOMCO v39 — تصحيح تسمية المصدر: أخبار اليوم = السوق الموازي فقط — الصق قبل </body> */
+(function(){
+  /* تصحيح الاسم المحفوظ من قبل */
+  try {
+    var b = JSON.parse(localStorage.getItem('tomco_usdt_source') || 'null');
+    if (b && b.name && b.name.indexOf('أخبار اليوم') !== -1) {
+      b.name = 'أخبار اليوم — السوق الموازي';
+      localStorage.setItem('tomco_usdt_source', JSON.stringify(b));
+      if (window.tomcoUSDTBest) window.tomcoUSDTBest.name = b.name;
+    }
+  } catch(e){}
+  /* تصحيح الاسم المعروض في كل مرة تترسم فيها صفحة العملات */
+  var _renderRates = window.renderRates;
+  window.renderRates = function(){
+    _renderRates();
+    try {
+      var line = document.getElementById('usdt-source-line');
+      if (line && line.textContent.indexOf('بنك الخرطوم') !== -1) {
+        line.textContent = line.textContent.replace('أخبار اليوم (بنك الخرطوم)', 'أخبار اليوم — السوق الموازي');
+      }
+    } catch(e){}
+  };
+})();
+</script>
+  
 </body></html>
