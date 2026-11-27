@@ -1,30 +1,30 @@
 {
-  "updatedAt": "2026-11-27T15:25:54.270Z",
-  "updatedAtLocal": "٢٧‏/١١‏/٢٠٢٦، ٥:٢٥:٥٤ م",
+  "updatedAt": "2026-11-27T23:38:11.433Z",
+  "updatedAtLocal": "٢٨‏/١١‏/٢٠٢٦، ١:٣٨:١١ ص",
   "bestUSDT": {
     "name": "Binance P2P",
-    "price": 12288
+    "price": 12340
   },
-  "bestPrice": 12288,
-  "usdt_sdg": 12288,
-  "bestGold": 3614.63,
-  "gold_per_gram_sdg": 1428024.93,
+  "bestPrice": 12340,
+  "usdt_sdg": 12340,
+  "bestGold": 3651.96,
+  "gold_per_gram_sdg": 1448878.31,
   "allSources": [
     {
       "name": "Binance P2P",
-      "price": 12288
+      "price": 12340
     },
     {
       "name": "Gold-API",
-      "price": 3626.2
+      "price": 3650
     },
     {
       "name": "PAX Gold (CoinGecko)",
-      "price": 3612.9
+      "price": 3651.96
     },
     {
       "name": "Tether Gold (CoinGecko)",
-      "price": 3614.63
+      "price": 3653.3
     }
   ],
   "sourcesChecked": 4,
