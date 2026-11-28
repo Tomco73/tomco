@@ -1269,5 +1269,17 @@ if('serviceWorker' in navigator){ window.addEventListener('load', function(){ na
   };
 })();
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://yypiogsqlfzcgxzdlqir.supabase.co";
+const SUPABASE_ANON = "sb_publishable_qKSAczKQEHh2EwREg3Hqow_dnYOR459";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+async function uploadToSupabase(file){
+  const name = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9.-]/g,"_");
+  const { error } = await supabaseClient.storage.from("tomco-images").upload(name, file);
+  if(error) throw error;
+  const { data } = supabaseClient.storage.from("tomco-images").getPublicUrl(name);
+  return data.publicUrl;
+}
+</script>
 </body></html>
